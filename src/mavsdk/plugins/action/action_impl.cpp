@@ -231,7 +231,46 @@ Action::Result ActionImpl::transition_to_multicopter() const
 
     return fut.get();
 }
+// --------------------------------------------- modded by liquidcat------------------------------------------
 
+
+Action::Result ActionImpl::set_gps_global_origin(const int latitude,
+				       const int longitude,
+				       const int altitude) const
+{
+  auto prom = std::promise<Action::Result>();
+  auto fut = prom.get_future();
+    
+  set_gps_global_origin_async(latitude,
+			      longitude,
+			      altitude,
+			      [&prom](Action::Result result) { prom.set_value(result); });
+  
+  return fut.get();
+}
+
+void ActionImpl::set_gps_global_origin_async(const int latitude,
+					     const int longitude,
+					     const int altitude,
+					     const Action::ResultCallback& callback) const
+{
+  auto send_set_gps_global_origin_command = [this, callback]() {
+    MavlinkCommandSender::CommandLong command{};
+
+    command.command = MAV_CMD_SET_GPS_GLOBAL_ORIGIN;
+    command.latitude =  latitude;
+    command.longitude = longitude;
+    command.altitude = altitude;
+
+     _system_impl->send_command_async(
+            command, [this, callback](MavlinkCommandSender::Result result, float) {
+                command_result_callback(result, callback);
+            });
+  };
+}
+
+// ------------------------------------------ end modded -----------------------------------------------
+  
 void ActionImpl::arm_async(const Action::ResultCallback& callback) const
 {
     auto send_arm_command = [this, callback]() {
@@ -454,7 +493,7 @@ void ActionImpl::land_async(const Action::ResultCallback& callback) const
             command_result_callback(result, callback);
         });
 }
-
+  
 void ActionImpl::return_to_launch_async(const Action::ResultCallback& callback) const
 {
     _system_impl->set_flight_mode_async(

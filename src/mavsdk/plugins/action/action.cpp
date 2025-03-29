@@ -28,6 +28,24 @@ Action::Result Action::arm() const
     return _impl->arm();
 }
 
+  //--------------- modded by liquidcat ----------
+
+  void Action::set_gps_global_origin_async(int latitude,
+					   int longitude,
+					   int altitude) const
+  {
+    _impl->arm_set_gps_global_origin_async(latitude, longitude, altitude);
+  }
+  
+  Action::Result Action::set_gps_global_origin(int latitude,
+					       int longitude,
+					       int altitude) const
+  {
+    return _impl->set_gps_global_origin(latitude, longitude, altitude);
+  }
+  
+  // ----------------end mod ----------------------
+
 void Action::arm_force_async(const ResultCallback callback)
 {
     _impl->arm_force_async(callback);

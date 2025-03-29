@@ -320,10 +320,10 @@ int main(int argc, char** argv)
     auto offboard = Offboard{system.value()};
     auto telemetry = Telemetry{system.value()};
 
-    while (!telemetry.health_all_ok()) {
+    /*while (!telemetry.health_all_ok()) {
         std::cout << "Waiting for system to be ready\n";
         sleep_for(seconds(1));
-    }
+    }*/
     std::cout << "System is ready\n";
 
     const auto arm_result = action.arm();

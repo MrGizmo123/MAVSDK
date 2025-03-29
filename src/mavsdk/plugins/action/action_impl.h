@@ -47,6 +47,19 @@ public:
     Action::Result transition_to_fixedwing() const;
     Action::Result transition_to_multicopter() const;
 
+  // -------------------------------- modded by liquidcat --------------------------
+
+  void ActionImpl::set_gps_global_origin(const int latitude,
+					 const int longitude,
+					 const int altitude) const;
+  
+  void ActionImpl::set_gps_global_origin_async(const int latitude,
+					       const int longitude,
+					       const int altitude,
+					       const Action::ResultCallback& callback) const;
+  
+  // --------------------------------- end mod ------------------------------------
+
     void arm_async(const Action::ResultCallback& callback) const;
     void arm_force_async(const Action::ResultCallback& callback) const;
     void disarm_async(const Action::ResultCallback& callback) const;
