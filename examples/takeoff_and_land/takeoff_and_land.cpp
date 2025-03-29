@@ -21,19 +21,19 @@ using std::this_thread::sleep_for;
 
 void usage(const std::string& bin_name)
 {
-    std::cerr << "Usage : " << bin_name << " <connection_url>\n"
+    std::cerr << "Usage : " << bin_name << " <pixhawk_connection_url> <forward_connection_1> <forward_connection_2>\n"
               << "Connection URL format should be :\n"
               << " For TCP server: tcpin://<our_ip>:<port>\n"
               << " For TCP client: tcpout://<remote_ip>:<port>\n"
               << " For UDP server: udp://<our_ip>:<port>\n"
               << " For UDP client: udp://<remote_ip>:<port>\n"
               << " For Serial : serial://</path/to/serial/dev>:<baudrate>]\n"
-              << "For example, to connect to the simulator use URL: udpin://0.0.0.0:14540\n";
+              << " For example, to connect to the simulator use URL: udpin://0.0.0.0:14540";
 }
 
 int main(int argc, char** argv)
 {
-    if (argc != 2) {
+    if (argc != 4) {
         usage(argv[0]);
         return 1;
     }
@@ -42,13 +42,28 @@ int main(int argc, char** argv)
     ConnectionResult connection_result = mavsdk.add_any_connection(argv[1], ForwardingOption::ForwardingOn);
 
     if (connection_result != ConnectionResult::Success) {
-        std::cerr << "Connection failed: " << connection_result << '\n';
+        std::cerr << "Pixhawk Connection failed: " << connection_result << '\n';
         return 1;
     }
 
-    mavsdk.add_any_connection("udpin://0.0.0.0:25565");
+    connection_result = mavsdk.add_any_connection(argv[2], ForwardingOption::ForwardingOn);
 
-    auto system = mavsdk.first_autopilot(3.0);
+    if (connection_result != ConnectionResult::Success) {
+        std::cerr << "Forwarding Connection 1 failed: " << connection_result << '\n';
+        return 1;
+    }
+
+    connection_result = mavsdk.add_any_connection(argv[3], ForwardingOption::ForwardingOn);
+
+    if (connection_result != ConnectionResult::Success) {
+        std::cerr << "Forwarding Connection 2 failed: " << connection_result << '\n';
+        return 1;
+    }
+
+
+
+
+    auto system = mavsdk.first_autopilot(20.0);
     if (!system) {
         std::cerr << "Timed out waiting for system\n";
         return 1;
@@ -61,16 +76,16 @@ int main(int argc, char** argv)
     auto mocap = Mocap{system.value()};
 
     // We want to listen to the altitude of the drone at 1 Hz.
-    const auto set_rate_result = telemetry.set_rate_position(1.0);
-    if (set_rate_result != Telemetry::Result::Success) {
-        std::cerr << "Setting rate failed: " << set_rate_result << '\n';
-        return 1;
-    }
+    // const auto set_rate_result = telemetry.set_rate_position(1.0);
+    // if (set_rate_result != Telemetry::Result::Success) {
+    //     std::cerr << "Setting rate failed: " << set_rate_result << '\n';
+    //     return 1;
+    // }
 
-    // Set up callback to monitor altitude while the vehicle is in flight
-    telemetry.subscribe_position([](Telemetry::Position position) {
-      std::cout << "Altitude: " << position.relative_altitude_m << " m\n";
-    });
+    // // Set up callback to monitor altitude while the vehicle is in flight
+    // telemetry.subscribe_position([](Telemetry::Position position) {
+    //   std::cout << "Altitude: " << position.relative_altitude_m << " m\n";
+    // });
 
     //mocap.set_gps_global_origin(origin);
     // // Check until vehicle is ready to arm
@@ -118,8 +133,10 @@ int main(int argc, char** argv)
       
       mocap.set_vision_position_estimate(est);
 
-      std::cout << "sending done" << std::endl;
+      sleep_for(std::chrono::milliseconds(17));
+      
+      // std::cout << "sending done" << std::endl;
     }
     
-    return 0;
+    return -1;
 }

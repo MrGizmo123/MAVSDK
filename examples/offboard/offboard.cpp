@@ -294,6 +294,19 @@ bool offb_ctrl_attitude(mavsdk::Offboard& offboard)
     return true;
 }
 
+using namespace std;
+
+void print_health(Telemetry::Health h)
+{
+  cout << "Health: " << endl
+       << "gyro: " << h.is_gyrometer_calibration_ok << endl
+       << "accel: " << h.is_accelerometer_calibration_ok << endl
+       << "magneto: " << h.is_magnetometer_calibration_ok << endl
+       << "local_pos: " << h.is_local_position_ok << endl
+       << "global_pos: " << h.is_global_position_ok << endl
+       << "Is Armable: " << h.is_armable << endl;
+}
+
 int main(int argc, char** argv)
 {
     if (argc != 2) {
@@ -309,7 +322,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto system = mavsdk.first_autopilot(3.0);
+    auto system = mavsdk.first_autopilot(10.0);
     if (!system) {
         std::cerr << "Timed out waiting for system\n";
         return 1;
@@ -320,66 +333,75 @@ int main(int argc, char** argv)
     auto offboard = Offboard{system.value()};
     auto telemetry = Telemetry{system.value()};
 
-    /*while (!telemetry.health_all_ok()) {
-        std::cout << "Waiting for system to be ready\n";
-        sleep_for(seconds(1));
-    }*/
-    std::cout << "System is ready\n";
+
+    sleep_for(seconds(2));
+    
+    // while (!telemetry.health_all_ok()) {
+    //     std::cout << "Waiting for system to be ready\n";
+    //     sleep_for(seconds(1));
+    // }
+    // std::cout << "System is ready\n";
+
+    sleep_for(seconds(2));
+
+    telemetry.subscribe_health([](Telemetry::Health h) { print_health(h); });
 
     const auto arm_result = action.arm();
-    if (arm_result != Action::Result::Success) {
-        std::cerr << "Arming failed: " << arm_result << '\n';
-        return 1;
-    }
+    // if (arm_result != Action::Result::Success) {
+    //     std::cerr << "Arming failed: " << arm_result << '\n';
+    //     return 1;
+    // }
     std::cout << "Armed\n";
 
-    const auto takeoff_result = action.takeoff();
-    if (takeoff_result != Action::Result::Success) {
-        std::cerr << "Takeoff failed: " << takeoff_result << '\n';
-        return 1;
-    }
+    auto action_takeoff = action.takeoff();
+    sleep_for(seconds(1));
+    // if ((action_takeoff = action.takeoff()) != Action::Result::Success) {
+    //   std::cerr << "Takeoff failed, retrying..." << action_takeoff << '\n';
+    // }
 
-    auto in_air_promise = std::promise<void>{};
-    auto in_air_future = in_air_promise.get_future();
-    Telemetry::LandedStateHandle handle = telemetry.subscribe_landed_state(
-        [&telemetry, &in_air_promise, &handle](Telemetry::LandedState state) {
-            if (state == Telemetry::LandedState::InAir) {
-                std::cout << "Taking off has finished\n.";
-                telemetry.unsubscribe_landed_state(handle);
-                in_air_promise.set_value();
-            }
-        });
-    in_air_future.wait_for(seconds(10));
-    if (in_air_future.wait_for(seconds(3)) == std::future_status::timeout) {
-        std::cerr << "Takeoff timed out.\n";
-        return 1;
-    }
+    // auto in_air_promise = std::promise<void>{};
+    // auto in_air_future = in_air_promise.get_future();
+    // Telemetry::LandedStateHandle handle = telemetry.subscribe_landed_state(
+    //     [&telemetry, &in_air_promise, &handle](Telemetry::LandedState state) {
+    //         if (state == Telemetry::LandedState::InAir) {
+    //             std::cout << "Taking off has finished\n.";
+    //             telemetry.unsubscribe_landed_state(handle);
+    //             in_air_promise.set_value();
+    //         }
+    //     });
+    // in_air_future.wait_for(seconds(10));
+    // if (in_air_future.wait_for(seconds(3)) == std::future_status::timeout) {
+    //     std::cerr << "Takeoff timed out.\n";
+    //     return 1;
+    // }
 
-    // using global position
-    if (!offb_ctrl_pos_global(offboard, telemetry)) {
-        return 1;
-    }
+    // // using global position
+    // if (!offb_ctrl_pos_global(offboard, telemetry)) {
+    //     return 1;
+    // }
 
-    //  using attitude control
-    if (!offb_ctrl_attitude(offboard)) {
-        return 1;
-    }
+    // //  using attitude control
+    // if (!offb_ctrl_attitude(offboard)) {
+    //     return 1;
+    // }
 
-    //  using local NED co-ordinates
-    if (!offb_ctrl_ned(offboard)) {
-        return 1;
-    }
+    // //  using local NED co-ordinates
+    // if (!offb_ctrl_ned(offboard)) {
+    //     return 1;
+    // }
 
-    //  using body co-ordinates
-    if (!offb_ctrl_body(offboard)) {
-        return 1;
-    }
+    // //  using body co-ordinates
+    // if (!offb_ctrl_body(offboard)) {
+    //     return 1;
+    // }
+
+    sleep_for(seconds(5));
 
     const auto land_result = action.land();
-    if (land_result != Action::Result::Success) {
-        std::cerr << "Landing failed: " << land_result << '\n';
-        return 1;
-    }
+    // if (land_result != Action::Result::Success) {
+    //     std::cerr << "Landing failed: " << land_result << '\n';
+    //     return 1;
+    // }
 
     // Check if vehicle is still in air
     while (telemetry.in_air()) {
